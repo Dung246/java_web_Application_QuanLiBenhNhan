@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quản Lý Thuốc - Smart Healthcare</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+
+        body{
+            min-height: 100vh;
+            background: linear-gradient(135deg, #dbeafe, #ecfeff, #f0fdf4);
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .page-title{
+            color: #0f766e;
+            font-weight: 700;
+        }
+
+        .main-card{
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            border-radius: 22px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: none;
+        }
+
+        .form-control{
+            border-radius: 12px;
+            padding: 11px 14px;
+            border: 1px solid #cbd5e1;
+            transition: 0.2s ease;
+        }
+
+        .form-control:focus{
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 0.2rem rgba(20,184,166,0.15);
+        }
+
+        .form-control.is-invalid{
+            background-image: none !important;
+        }
+
+        .section-title{
+            color: #0f766e;
+            font-weight: 700;
+        }
+
+        .btn-save{
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+            border: none;
+            color: white;
+            border-radius: 12px;
+            transition: 0.25s ease;
+        }
+
+        .btn-save:hover{
+            opacity: 0.95;
+            transform: translateY(-2px);
+        }
+
+        .btn-back{
+            background: #64748b;
+            border: none;
+            color: white;
+            border-radius: 12px;
+            transition: 0.25s ease;
+        }
+
+        .btn-back:hover{
+            background: #475569;
+        }
+
+        .btn-cancel{
+            border-radius: 12px;
+        }
+
+        .table-wrapper{
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(10px);
+            border-radius: 22px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            padding: 20px;
+        }
+
+        .table{
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table thead{
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+            color: white;
+        }
+
+        .table thead th{
+            border: none;
+            padding: 16px;
+        }
+
+        .table tbody td{
+            padding: 16px 12px;
+            vertical-align: middle;
+        }
+
+        .table-hover tbody tr:hover{
+            background: #f0fdfa;
+            transition: 0.2s ease;
+        }
+
+        .medicine-name{
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .badge-unit{
+            background: #ccfbf1;
+            color: #115e59;
+            font-size: 13px;
+            padding: 8px 14px;
+            border-radius: 999px;
+        }
+
+        .action-btn{
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            transition: 0.25s ease;
+        }
+
+        .action-btn:hover{
+            transform: scale(1.08);
+        }
+
+        .btn-edit{
+            border: 1px solid #06b6d4;
+            color: #0891b2;
+        }
+
+        .btn-edit:hover{
+            background: #06b6d4;
+            color: white;
+        }
+
+        .btn-delete{
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+
+        .btn-delete:hover{
+            background: #ef4444;
+            color: white;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h2 class="page-title">
+            <i class="fa-solid fa-pills me-2"></i>
+            Quản Lý Danh Mục Thuốc
+        </h2>
+
+        <a th:href="@{/admin/dashboard}"
+           class="btn btn-back shadow-sm px-4 py-2">
+
+            <i class="fa-solid fa-arrow-left me-1"></i>
+            Quay lại
+
+        </a>
+
+    </div>
+
+    <!-- FORM -->
+    <div class="card main-card mb-4">
+
+        <div class="card-body p-4">
+
+            <h5 id="formTitle"
+                class="section-title mb-4">
+
+                <i class="fa-solid fa-plus-circle me-2"></i>
+                Thêm thuốc mới vào kho
+
+            </h5>
+
+            <form th:action="@{/admin/medicines/save}"
+                  method="post"
+                  th:object="${dto}"
+                  novalidate>
+
+                <input type="hidden" name="id" id="medId">
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+
+                        <input type="text"
+                               name="name"
+                               id="medName"
+                               class="form-control"
+
+                               th:classappend="${errorName} ? 'is-invalid' : ''"
+
+                               placeholder="Tên thuốc (VD: Paracetamol)">
+
+                        <div class="text-danger small mt-1"
+                             th:if="${errorName}"
+                             th:text="${errorName}">
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-2">
+
+                        <input type="text"
+                               name="unit"
+                               id="medUnit"
+                               class="form-control"
+
+                               th:classappend="${errorUnit} ? 'is-invalid' : ''"
+
+                               placeholder="Đơn vị">
+
+                        <div class="text-danger small mt-1"
+                             th:if="${errorUnit}"
+                             th:text="${errorUnit}">
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <input type="text"
+                               name="description"
+                               id="medDesc"
+                               class="form-control"
+
+                               placeholder="Mô tả công dụng">
+
+                    </div>
+
+                    <div class="col-md-2 d-flex gap-2">
+
+                        <button type="submit"
+                                id="btnSubmit"
+                                class="btn btn-save fw-bold w-100">
+
+                            <i class="fa-solid fa-floppy-disk me-1"></i>
+                            Lưu
+
+                        </button>
+
+                        <button type="button"
+                                id="btnCancel"
+                                class="btn btn-outline-secondary btn-cancel d-none"
+
+                                onclick="cancelEdit()">
+
+                            <i class="fa-solid fa-xmark"></i>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrapper">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead>
+
+                <tr>
+                    <th>ID</th>
+                    <th>Tên Thuốc</th>
+                    <th>Đơn vị</th>
+                    <th>Mô tả</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr th:each="m : ${medicines}">
+
+                    <td class="text-muted"
+                        th:text="${m.id}">
+                    </td>
+
+                    <td class="medicine-name"
+                        th:text="${m.name}">
+                    </td>
+
+                    <td>
+                        <span class="badge-unit"
+                              th:text="${m.unit}">
+                        </span>
+                    </td>
+
+                    <td class="text-muted"
+                        th:text="${m.description}">
+                    </td>
+
+                    <td class="text-center">
+
+                        <button type="button"
+
+                                class="btn action-btn btn-edit me-1"
+
+                                th:onclick="loadEditForm([[${m.id}]], [[${m.name}]], [[${m.unit}]], [[${m.description}]])">
+
+                            <i class="fa-solid fa-pen"></i>
+
+                        </button>
+
+                        <a th:href="@{/admin/medicines/delete/{id}(id=${m.id})}"
+
+                           class="btn action-btn btn-delete"
+
+                           onclick="return confirm('Xóa thuốc này?')">
+
+                            <i class="fa-solid fa-trash"></i>
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    function loadEditForm(id, name, unit, desc) {
+
+        document.getElementById('medId').value = id;
+        document.getElementById('medName').value = name;
+        document.getElementById('medUnit').value = unit;
+        document.getElementById('medDesc').value = desc;
+
+        document.getElementById('formTitle').innerHTML =
+            '<i class="fa-solid fa-pen-to-square me-2 text-info"></i>Cập nhật thông tin thuốc';
+
+        document.getElementById('btnSubmit').innerHTML =
+            '<i class="fa-solid fa-check me-1"></i>Cập nhật';
+
+        document.getElementById('btnSubmit').classList.replace('btn-save', 'btn-info');
+
+        document.getElementById('btnCancel').classList.remove('d-none');
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    function cancelEdit() {
+
+        document.getElementById('medId').value = '';
+        document.getElementById('medName').value = '';
+        document.getElementById('medUnit').value = '';
+        document.getElementById('medDesc').value = '';
+
+        document.getElementById('formTitle').innerHTML =
+            '<i class="fa-solid fa-plus-circle me-2"></i>Thêm thuốc mới vào kho';
+
+        document.getElementById('btnSubmit').innerHTML =
+            '<i class="fa-solid fa-floppy-disk me-1"></i>Lưu';
+
+        document.getElementById('btnSubmit').classList.replace('btn-info', 'btn-save');
+
+        document.getElementById('btnCancel').classList.add('d-none');
+    }
+
+</script>
+
+</body>
+</html>
