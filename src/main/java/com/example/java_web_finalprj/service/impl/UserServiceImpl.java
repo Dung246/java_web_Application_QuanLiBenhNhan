@@ -17,19 +17,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
     private final SpecialtyRepository specialtyRepository;
 
     @Override
     @Transactional
     public User register(UserRegisterDTO dto) throws Exception {
-        if (userRepository.findByUsername(dto.getUsername()) != null) {
+        String username = dto.getUsername().trim();
+
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new Exception("Tên đăng nhập đã tồn tại!");
         }
+
         User user = new User();
-        user.setUsername(dto.getUsername());
+        user.setUsername(username);
         user.setPassword(HashUtil.hashPassword(dto.getPassword()));
         user.setRole(Role.PATIENT);
+        user.setEnabled(true);
 
         UserProfile profile = new UserProfile();
         profile.setFullName(dto.getFullName());
@@ -42,11 +47,36 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User login(String username, String password) {
-        User user = userRepository.findByUsername(username);
-        if (user != null && user.getPassword().equals(HashUtil.hashPassword(password))) {
-            return user;
+        if (username == null || password == null) {
+            System.out.println("❌ Username hoặc password bị null");
+            return null;
         }
-        return null;
+
+        String trimmedUsername = username.trim();
+        User user = userRepository.findByUsername(trimmedUsername).orElse(null);
+
+        if (user == null) {
+            System.out.println("❌ Không tìm thấy username: " + trimmedUsername);
+            return null;
+        }
+
+        String hashedInput = HashUtil.hashPassword(password);
+        String dbPassword = user.getPassword();
+
+        System.out.println("=====================================");
+        System.out.println("🔑 ĐANG ĐĂNG NHẬP: " + trimmedUsername);
+        System.out.println("🔑 Hash nhập vào : " + hashedInput);
+        System.out.println("🔑 Hash trong DB : " + dbPassword);
+        System.out.println("🔑 Role: " + user.getRole());
+        System.out.println("=====================================");
+
+        if (hashedInput != null && hashedInput.equals(dbPassword)) {
+            System.out.println("✅ ĐĂNG NHẬP THÀNH CÔNG: " + trimmedUsername + " (" + user.getRole() + ")");
+            return user;
+        } else {
+            System.out.println("❌ SAI MẬT KHẨU!");
+            return null;
+        }
     }
 
     @Override
@@ -54,26 +84,31 @@ public class UserServiceImpl implements UserService {
     public void updateProfile(Long userId, UserProfileDTO dto) {
         User user = userRepository.findById(userId).orElseThrow();
         UserProfile profile = user.getProfile();
-        profile.setFullName(dto.getFullName());
-        profile.setPhone(dto.getPhone());
-        profile.setAddress(dto.getAddress());
-        profile.setDateOfBirth(dto.getDateOfBirth());
+
+        if (profile != null) {
+            profile.setFullName(dto.getFullName());
+            profile.setPhone(dto.getPhone());
+            profile.setAddress(dto.getAddress());
+            profile.setDateOfBirth(dto.getDateOfBirth());
+        }
         userRepository.save(user);
     }
 
     @Override
     @Transactional
     public User createDoctor(DoctorCreateDTO dto) throws Exception {
-        if (userRepository.findByUsername(dto.getUsername()) != null) {
+        String username = dto.getUsername().trim();
+
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new Exception("Tên đăng nhập đã tồn tại!");
         }
 
         User user = new User();
-        user.setUsername(dto.getUsername());
+        user.setUsername(username);
         user.setPassword(HashUtil.hashPassword(dto.getPassword()));
         user.setRole(Role.DOCTOR);
+        user.setEnabled(true);
 
-        // Gán chuyên khoa
         if (dto.getSpecialtyId() != null) {
             user.setSpecialty(specialtyRepository.findById(dto.getSpecialtyId()).orElse(null));
         }

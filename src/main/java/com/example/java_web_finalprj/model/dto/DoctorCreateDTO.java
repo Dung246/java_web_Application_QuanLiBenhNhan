@@ -8,7 +8,10 @@ public class DoctorCreateDTO {
     private String gender;
     private String email;
     private String phone;
-    private Long specialtyId; // Quan trọng để AdminController đọc được ID
+
+    // ĐÂY NÀY! Bắt buộc phải có dòng này thì mới hết báo đỏ nhé
+    private Long specialtyId;
+
     private String username;
     private String password;
 }

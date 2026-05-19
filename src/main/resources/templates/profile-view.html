@@ -24,12 +24,13 @@
         </div>
     </div>
 
-    <div th:if="${param.success}" class="alert alert-success shadow-sm rounded-3">
-        <i class="fa-solid fa-check-circle me-2"></i>Cập nhật thông tin hồ sơ thành công!
+    <div th:if="${successMessage}" class="alert alert-success shadow-sm rounded-3">
+        <i class="fa-solid fa-check-circle me-2"></i><span th:text="${successMessage}">Cập nhật thành công!</span>
     </div>
 
     <div class="card profile-card p-4 bg-white">
         <form th:action="@{/profile}" method="post">
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label text-muted">Tài khoản</label>
@@ -41,14 +42,31 @@
                 </div>
             </div>
 
+            <hr class="text-muted opacity-25">
+
             <div class="row mt-2">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Họ và tên</label>
+                    <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
                     <input type="text" name="fullName" class="form-control" th:value="${session.loggedInUser.profile.fullName}" required>
                 </div>
                 <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Giới tính</label>
+                    <select name="gender" class="form-select">
+                        <option value="Nam" th:selected="${session.loggedInUser.profile.gender == 'Nam'}">Nam</option>
+                        <option value="Nữ" th:selected="${session.loggedInUser.profile.gender == 'Nữ'}">Nữ</option>
+                        <option value="Khác" th:selected="${session.loggedInUser.profile.gender == 'Khác'}">Khác</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Số điện thoại</label>
                     <input type="text" name="phone" class="form-control" th:value="${session.loggedInUser.profile.phone}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Email</label>
+                    <input type="email" name="email" class="form-control" th:value="${session.loggedInUser.profile.email}">
                 </div>
             </div>
 
@@ -62,13 +80,14 @@
                 <input type="date" name="dateOfBirth" class="form-control" th:value="${session.loggedInUser.profile.dateOfBirth}">
             </div>
 
-            <hr class="text-muted">
+            <hr class="text-muted opacity-25">
 
             <div class="text-end">
                 <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
                     <i class="fa-solid fa-floppy-disk me-1"></i>Cập nhật thông tin
                 </button>
             </div>
+
         </form>
     </div>
 </div>

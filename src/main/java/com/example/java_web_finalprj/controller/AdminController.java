@@ -1,6 +1,7 @@
 package com.example.java_web_finalprj.controller;
 
 import com.example.java_web_finalprj.model.dto.DoctorCreateDTO;
+import com.example.java_web_finalprj.model.dto.RevenueDTO;
 import com.example.java_web_finalprj.model.entity.Role;
 import com.example.java_web_finalprj.model.entity.User;
 import com.example.java_web_finalprj.repository.AppointmentRepository;
@@ -9,9 +10,12 @@ import com.example.java_web_finalprj.repository.UserRepository;
 import com.example.java_web_finalprj.service.ExaminationService;
 import com.example.java_web_finalprj.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -25,12 +29,36 @@ public class AdminController {
     private final ExaminationService examService;
 
     @GetMapping("/dashboard")
-    public String dashboard() { return "admin-dashboard"; }
+    public String dashboard() {
+        return "admin/admin-dashboard";
+    }
+
+    @GetMapping("/statistics")
+    public String statistics(Model model) {
+        model.addAttribute("totalPatients", userRepo.findByRole(Role.PATIENT).size());
+        model.addAttribute("totalDoctors", userRepo.findByRole(Role.DOCTOR).size());
+        model.addAttribute("totalAppointments", appointmentRepo.count());
+
+        List<RevenueDTO> revenueData = appointmentRepo.getMonthlyRevenue();
+
+        // FIX LỖI Ở ĐÂY: Thêm .filter(r -> r.getTotal() != null) để lọc bỏ các khoản doanh thu bị NULL
+        Double totalRevenue = revenueData.stream()
+                .filter(r -> r.getTotal() != null)
+                .mapToDouble(RevenueDTO::getTotal)
+                .sum();
+
+        model.addAttribute("totalRevenue", totalRevenue);
+        model.addAttribute("revenueData", revenueData);
+
+        model.addAttribute("topDoctors", appointmentRepo.getTopDoctors(PageRequest.of(0, 5)));
+
+        return "admin/admin-statistics";
+    }
 
     // --- QUẢN LÝ BÁC SĨ ---
     @GetMapping("/doctors")
-    public String listDoctors(Model model) {
-        model.addAttribute("doctors", userRepo.findByRole(Role.DOCTOR));
+    public String listDoctors(@RequestParam(defaultValue = "0") int page, Model model) {
+        model.addAttribute("doctorPage", userRepo.findByRole(Role.DOCTOR, PageRequest.of(page, 5)));
         return "admin/doctor-manage";
     }
 
@@ -44,34 +72,16 @@ public class AdminController {
     @PostMapping("/doctor/create")
     public String createDoctor(@ModelAttribute("dto") DoctorCreateDTO dto, Model model) {
         boolean hasError = false;
-
         if (dto.getFullName() == null || dto.getFullName().trim().isEmpty()) {
             model.addAttribute("nameError", "Họ và tên không được để trống!"); hasError = true;
-        }
-        if (dto.getGender() == null || dto.getGender().isEmpty()) {
-            model.addAttribute("genderError", "Vui lòng chọn giới tính!"); hasError = true;
         }
         if (dto.getSpecialtyId() == null) {
             model.addAttribute("specialtyError", "Vui lòng chọn chuyên khoa!"); hasError = true;
         }
-        if (dto.getEmail() == null || dto.getEmail().trim().isEmpty() || !dto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            model.addAttribute("emailError", "Email không đúng định dạng!"); hasError = true;
-        }
-        if (dto.getPhone() == null || !dto.getPhone().matches("\\d{10,11}")) {
-            model.addAttribute("phoneError", "Số điện thoại phải từ 10-11 chữ số!"); hasError = true;
-        }
-        if (dto.getUsername() == null || dto.getUsername().trim().length() < 3) {
-            model.addAttribute("usernameError", "Tên đăng nhập phải có ít nhất 3 ký tự!"); hasError = true;
-        }
-        if (dto.getPassword() == null || dto.getPassword().trim().length() < 6) {
-            model.addAttribute("passwordError", "Mật khẩu phải từ 6 ký tự trở lên!"); hasError = true;
-        }
-
         if (hasError) {
             model.addAttribute("specialties", specialtyRepo.findAll());
             return "admin/create-doctor";
         }
-
         try {
             userService.createDoctor(dto);
             return "redirect:/admin/doctors?success=created";
@@ -92,8 +102,8 @@ public class AdminController {
 
     // --- QUẢN LÝ BỆNH NHÂN ---
     @GetMapping("/patients")
-    public String listPatients(Model model) {
-        model.addAttribute("patients", userRepo.findByRole(Role.PATIENT));
+    public String listPatients(@RequestParam(defaultValue = "0") int page, Model model) {
+        model.addAttribute("patientPage", userRepo.findByRole(Role.PATIENT, PageRequest.of(page, 5)));
         return "admin/patient-manage";
     }
 
@@ -105,7 +115,7 @@ public class AdminController {
         return "admin/patient-details";
     }
 
-    // --- QUẢN LÝ CẤP PHÁT THUỐC ---
+    // --- QUẢN LÝ PHÁT THUỐC ---
     @GetMapping("/prescriptions")
     public String listPrescriptions(Model model) {
         model.addAttribute("pendingRecords", examService.getPendingPrescriptions());

@@ -15,13 +15,9 @@ public class AdminAccountFixer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Tìm tài khoản admin trong Database
-        User admin = userRepository.findByUsername("admin");
-
-        if (admin != null) {
-            // Lấy đúng thuật toán HashUtil của project cậu để băm lại chữ "123456"
+        userRepository.findByUsername("admin").ifPresent(admin -> {
             admin.setPassword(HashUtil.hashPassword("123456"));
             userRepository.save(admin);
-        }
+        });
     }
 }

@@ -1,45 +1,75 @@
 package com.example.java_web_finalprj.controller;
 
-import com.example.java_web_finalprj.model.dto.UserProfileDTO;
 import com.example.java_web_finalprj.model.entity.User;
-import com.example.java_web_finalprj.service.UserService;
+import com.example.java_web_finalprj.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.LocalDate;
 
 @Controller
-@RequestMapping("/profile")
 @RequiredArgsConstructor
 public class ProfileController {
-    private final UserService userService;
 
-    @GetMapping
-    public String viewProfile(HttpSession session, Model model) {
-        User user = (User) session.getAttribute("loggedInUser");
+    private final UserRepository userRepository;
 
-        // Truyền dữ liệu sang giao diện HTML
-        model.addAttribute("user", user);
+    // 1. HIỂN THỊ TRANG PROFILE (Cái này cậu đang có và chạy OK)
+    @GetMapping("/profile")
+    public String showProfile(HttpSession session, Model model) {
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            return "redirect:/login"; // Chưa đăng nhập thì đuổi về trang login
+        }
 
-        // ĐÂY LÀ DÒNG THIẾU LÚC NÃY ĐỂ TRỊ LỖI BÁO NULL:
-        model.addAttribute("profile", user.getProfile());
-
+        // Lấy dữ liệu mới nhất từ Database
+        User currentUser = userRepository.findById(loggedInUser.getId()).orElse(null);
+        model.addAttribute("user", currentUser);
         return "profile-view";
     }
 
-    @PostMapping("/update")
-    public String update(HttpSession session, UserProfileDTO dto) {
-        User user = (User) session.getAttribute("loggedInUser");
-        userService.updateProfile(user.getId(), dto);
+    // 2. HỨNG DỮ LIỆU CẬP NHẬT (PHẦN CẬU ĐANG THIẾU GÂY RA LỖI)
+    @PostMapping("/profile")
+    public String updateProfile(
+            @RequestParam("fullName") String fullName,
+            @RequestParam("phone") String phone,
+            @RequestParam("email") String email,
+            @RequestParam("address") String address,
+            @RequestParam("gender") String gender,
+            @RequestParam(value = "dateOfBirth", required = false) LocalDate dateOfBirth,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
 
-        // Cập nhật xong thì lưu đè lại thông tin mới vào session để nó hiển thị luôn
-        user.getProfile().setFullName(dto.getFullName());
-        user.getProfile().setPhone(dto.getPhone());
-        user.getProfile().setAddress(dto.getAddress());
-        user.getProfile().setDateOfBirth(dto.getDateOfBirth());
-        session.setAttribute("loggedInUser", user);
+        User loggedInUser = (User) session.getAttribute("loggedInUser");
+        if (loggedInUser == null) {
+            return "redirect:/login";
+        }
 
-        return "redirect:/profile?updated";
+        // Lấy User từ DB ra để ghi đè thông tin mới
+        User currentUser = userRepository.findById(loggedInUser.getId()).orElse(null);
+
+        if (currentUser != null && currentUser.getProfile() != null) {
+            currentUser.getProfile().setFullName(fullName);
+            currentUser.getProfile().setPhone(phone);
+            currentUser.getProfile().setEmail(email);
+            currentUser.getProfile().setAddress(address);
+            currentUser.getProfile().setGender(gender);
+            currentUser.getProfile().setDateOfBirth(dateOfBirth);
+
+            // Lưu vào DB
+            userRepository.save(currentUser);
+
+            // Cập nhật lại session cho đồng bộ
+            session.setAttribute("loggedInUser", currentUser);
+        }
+
+        // Bắn thông báo xanh lá cây ra màn hình
+        redirectAttributes.addFlashAttribute("successMessage", "Cập nhật hồ sơ thành công!");
+        return "redirect:/profile";
     }
 }
